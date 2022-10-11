@@ -2,6 +2,7 @@
 backup.db
 mediahen
 remote
+venv
 
 __pycache__/
 *.py[cod]
