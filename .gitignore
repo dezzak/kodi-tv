@@ -2,3 +2,7 @@
 backup.db
 mediahen
 remote
+
+__pycache__/
+*.py[cod]
+*$py.class
