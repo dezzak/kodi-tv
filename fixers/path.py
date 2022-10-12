@@ -20,7 +20,7 @@ def remove_path(path: Path, expected_shows: int = 0):
             print(f'Removing file "{path.path}{file.filename}" [{file.id}]')
         remove_file(file)
     if not dry_run:
-        if not Media.is_directory(path):
+        if not Media.is_present(path):
             db().remove_path(path.id)
         else:
             db().mark_path_as_excluded(path.id)

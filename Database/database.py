@@ -50,6 +50,14 @@ class Database:
             result.append(Path(row[0], row[1], row[2], row[3]))
         return result
 
+    def get_path(self, path_id: int) -> Path:
+        cur = self.con.cursor()
+        cur.execute(
+                "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE idPath = :path_id",
+                {"path_id": path_id})
+        row = cur.fetchone()
+        return Path(row[0], row[1], row[2], row[3])
+
     def remove_bookmarks_by_file(self, file_id: int):
         cur = self.con.cursor()
         cur.execute("DELETE FROM bookmark WHERE idFile = :file_id", {"file_id": file_id})

@@ -20,3 +20,8 @@ def is_directory(kodi_path: Path):
 def is_link(kodi_path):
     local_path = path.normpath(convert_to_local(kodi_path.path))
     return path.islink(local_path)
+
+
+def is_present(kodi_path: Path):
+    local_path = path.normpath(convert_to_local(kodi_path.path))
+    return path.exists(local_path)
