@@ -1,6 +1,8 @@
 import sqlite3
+from typing import Optional
 
-from Entity import Show, Path, File
+from Entity import Show, Path, File, Episode
+from functools import lru_cache
 
 
 def get_connection():
@@ -25,7 +27,9 @@ class Database:
     def get_show_paths(self, show_id: int) -> list[Path]:
         cur = self.con.cursor()
         result = []
-        for row in cur.execute("SELECT p.idPath, p.strPath, p.noUpdate, p.exclude FROM path p INNER JOIN tvshowlinkpath t ON p.idPath = t.idPath WHERE t.idShow = :show_id", {"show_id": show_id}):
+        for row in cur.execute(
+                "SELECT p.idPath, p.strPath, p.noUpdate, p.exclude FROM path p INNER JOIN tvshowlinkpath t ON p.idPath = t.idPath WHERE t.idShow = :show_id",
+                {"show_id": show_id}):
             result.append(Path(row[0], row[1], row[2], row[3]))
         return result
 
@@ -53,8 +57,8 @@ class Database:
     def get_path(self, path_id: int) -> Path:
         cur = self.con.cursor()
         cur.execute(
-                "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE idPath = :path_id",
-                {"path_id": path_id})
+            "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE idPath = :path_id",
+            {"path_id": path_id})
         row = cur.fetchone()
         return Path(row[0], row[1], row[2], row[3])
 
@@ -111,6 +115,35 @@ class Database:
         cur.execute("DELETE FROM tvshowlinkpath WHERE idPath = :path_id", {"path_id": path_id})
         self.con.commit()
         print(f'Unlinked path [{path_id}] from all shows')
+
+    @lru_cache
+    def get_all_show_paths(self) -> dict:
+        cur = self.con.cursor()
+        result = []
+        for row in cur.execute(
+                "SELECT p.strPath, t.idShow FROM path p INNER JOIN tvshowlinkpath t on p.idPath = t.idPath"):
+            result.append(row)
+        return dict(result)
+
+    def get_episodes_for_show(self, show_id: int) -> list[Episode]:
+        cur = self.con.cursor()
+        result = []
+        for row in cur.execute(
+                "SELECT idEpisode, c18, idFile, c19, idShow FROM episode WHERE idShow = :show_id",
+                {"show_id": show_id}):
+            result.append(Episode(row[0], row[1], row[2], row[3], row[4]))
+        return result
+
+    @lru_cache
+    def get_path_for_file_path(self, file_path: str) -> Optional[Path]:
+        cur = self.con.cursor()
+        cur.execute(
+            "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE strPath = :file_path",
+            {"file_path": file_path})
+        row = cur.fetchone()
+        if not row:
+            return None
+        return Path(row[0], row[1], row[2], row[3])
 
 
 def db() -> Database:

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import Media
 from Entity import Path, File
 from Database import db
@@ -36,3 +38,12 @@ def remove_file(file: File):
         db().remove_stacktimes_by_file(file.id)
         db().remove_streamdetails_by_file(file.id)
         db().remove_file(file.id)
+
+
+def get_show_for_file_path(file_path: str) -> Optional[int]:
+    paths = db().get_all_show_paths()
+    for path in paths.keys():
+        if file_path.startswith(path):
+            return paths[path]
+    return None
+
