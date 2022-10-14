@@ -1,8 +1,7 @@
-import fixers.path
 from Database import db
-from Entity import Show, Path
+from Entity import Show
 import Media
-from . import remove_path
+from . import remove_path, fix_episode
 
 
 def fix_show(show: Show):
@@ -28,18 +27,4 @@ def fix_show(show: Show):
         remove_path(path, 1)
     episodes = db().get_episodes_for_show(show.id)
     for episode in episodes:
-        expected_show = fixers.path.get_show_for_file_path(episode.filename)
-        if not expected_show:
-            print(f'Could not get expected show for [{episode.id}] "{episode.filename}"')
-            continue
-        expected_path = db().get_path_for_file_path(episode.filename.rsplit('/', 1)[0] + '/')
-        if not expected_path:
-            print(f'Could not get expected path for [{episode.id}] "{episode.filename}"')
-            continue
-        print(f'Episode [{episode.id}] "{episode.filename}" has path: {episode.path_id} and file: {episode.file_id}')
-        if expected_show != show.id:
-            print(
-                f'IRREGULARITY - Episode [{episode.id}] "{episode.filename}" is on show {show.id} but expected {expected_show}')
-        if int(expected_path.id) != int(episode.path_id):
-            print(
-                f'IRREGULARITY - Episode [{episode.id}] "{episode.filename}" is on path {episode.path_id} but expected {expected_path.id}')
+        fix_episode(episode, show)

@@ -36,8 +36,8 @@ class Database:
     def get_files_for_path(self, path_id: int) -> list[File]:
         cur = self.con.cursor()
         result = []
-        for row in cur.execute("SELECT idFile, strFilename FROM files WHERE idPath = :path", {"path": path_id}):
-            result.append(File(row[0], row[1]))
+        for row in cur.execute("SELECT idFile, strFilename, idPath FROM files WHERE idPath = :path", {"path": path_id}):
+            result.append(File(row[0], row[1], row[2]))
         return result
 
     def count_shows_for_path(self, path_id: int) -> int:
@@ -144,6 +144,32 @@ class Database:
         if not row:
             return None
         return Path(row[0], row[1], row[2], row[3])
+
+    def get_file_by_id(self, file_id: int) -> Optional[File]:
+        cur = self.con.cursor()
+        cur.execute("SELECT idFile, strFilename, idPath FROM files WHERE idFile = :file_id", {"file_id": file_id})
+        row = cur.fetchone()
+        if not row:
+            return None
+        return File(row[0], row[1], row[2])
+
+    def get_file_in_path(self, path_id: int, file_name: str) -> Optional[File]:
+        cur = self.con.cursor()
+        cur.execute(
+            "SELECT idFile, strFilename, idPath FROM files WHERE idPath = :path_id AND strFilename = :file_name",
+            {"path_id": path_id, "file_name": file_name})
+        row = cur.fetchone()
+        if not row:
+            return None
+        return File(row[0], row[1], row[2])
+
+    def update_episode(self, episode: Episode):
+        cur = self.con.cursor()
+        cur.execute(
+            "UPDATE episode SET idShow = :show_id, c19 = :path_id, idFile = :file_id WHERE idEpisode = :episode_id",
+            {"episode_id": episode.id, "path_id": episode.path_id, "file_id": episode.file_id, "show_id": episode.show_id})
+        self.con.commit()
+        print(f'Updated episode [{episode.id}]')
 
 
 def db() -> Database:
