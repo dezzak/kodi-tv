@@ -1,3 +1,4 @@
+import fixers
 from Database import db
 from Entity import Show
 import Media
@@ -28,3 +29,12 @@ def fix_show(show: Show):
     episodes = db().get_episodes_for_show(show.id)
     for episode in episodes:
         fix_episode(episode, show)
+    # Now get the episodes again to find duplicates
+    episodes = db().get_episodes_for_show(show.id)
+    episodes_by_file = {}
+    for episode in episodes:
+        if episode.file_id in episodes_by_file:
+            episodes_by_file[episode.file_id].append(episode)
+        else:
+            episodes_by_file[episode.file_id] = [episode]
+    fixers.deduplicate_for_show(episodes_by_file)

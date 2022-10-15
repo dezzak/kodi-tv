@@ -38,7 +38,7 @@ def fix_episode(episode: Episode, show: Show):
         needs_update = True
     if needs_update:
         desired_episode = Episode(episode.id, episode.filename, expected_file.id, expected_path.id, expected_show,
-                                  expected_season.id, episode.season_number)
+                                  expected_season.id, episode.season_number, episode.unique_id, episode.rating_id)
         if dry_run:
             print(
                 f'Would update episode {desired_episode.id} to have show {desired_episode.show_id}, path {desired_episode.path_id}, file {desired_episode.file_id} and season {desired_episode.season_id}')
@@ -49,3 +49,40 @@ def fix_episode(episode: Episode, show: Show):
 def irregularity(episode: Episode, message: str):
     print(
         f'IRREGULARITY - Episode [{episode.id}] "{episode.filename}" {message}')
+
+
+def deduplicate_for_show(episodes_for_show: dict[int, list[Episode]]):
+    for file_id, episodes in episodes_for_show.items():
+        deduplicate_for_file(file_id, episodes)
+
+
+def deduplicate_for_file(file_id: int, episodes: list[Episode]):
+    if len(episodes) == 1:
+        return
+    path_id = None
+    season_id = None
+    unique_ids = []
+    for episode in episodes:
+        if not path_id:
+            path_id = episode.path_id
+        if not season_id:
+            season_id = episode.season_id
+        if path_id != episode.path_id:
+            irregularity(episodes[0], f'file {file_id} has duplicate episode entries but different path IDs')
+            return
+        if season_id != episode.season_id:
+            irregularity(episodes[0], f'file {file_id} has duplicate episode entries but different season IDs')
+            return
+        unique_ids.append(episode.unique_id)
+    irregularity(episodes[0], f'file {file_id} has duplicate episode entries')
+    desired_unique_id = db().get_unique_id_for_type(unique_ids, 'tvdb')
+    if not desired_unique_id:
+        irregularity(episodes[0], f'unable to work out which episode to dedupe with')
+        return
+    for episode in episodes:
+        if int(episode.unique_id) == int(desired_unique_id):
+            continue
+        if dry_run:
+            print(f'Would remove episode [{episode.id}]')
+        else:
+            db().remove_episode_by_id(episode.id)

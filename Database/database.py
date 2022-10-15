@@ -129,9 +129,9 @@ class Database:
         cur = self.con.cursor()
         result = []
         for row in cur.execute(
-                "SELECT idEpisode, c18, idFile, c19, idShow, idSeason, c12 FROM episode WHERE idShow = :show_id",
+                "SELECT idEpisode, c18, idFile, c19, idShow, idSeason, c12, c20, c03 FROM episode WHERE idShow = :show_id",
                 {"show_id": show_id}):
-            result.append(Episode(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+            result.append(Episode(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]))
         return result
 
     @lru_cache
@@ -182,6 +182,22 @@ class Database:
         if not row:
             return None
         return Season(row[0], row[1], row[2])
+
+    def get_unique_id_for_type(self, ids_to_search: list[int], desired_type: str) -> int:
+        params: list = ids_to_search.copy()
+        params.append(desired_type)
+        cur = self.con.cursor()
+        cur.execute("SELECT uniqueid_id FROM uniqueid WHERE uniqueid_id IN (%s) AND type = ?" % ','.join(
+            '?' * (len(ids_to_search))),
+                    params)
+        row = cur.fetchone()
+        return row[0]
+
+    def remove_episode_by_id(self, episode_id: int):
+        cur = self.con.cursor()
+        cur.execute("DELETE FROM episode WHERE idEpisode = :id", {"id": episode_id})
+        self.con.commit()
+        print(f'Removed episode [{episode_id}]')
 
 
 def db() -> Database:
