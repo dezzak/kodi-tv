@@ -19,10 +19,15 @@ def fix_episode(episode: Episode, show: Show):
     if not expected_file:
         irregularity(episode, f'could not get file (expected file id {episode.file_id})')
         return
-    expected_season = db().get_season(expected_show, episode.season_number)
-    if not expected_season:
+    try:
+        expected_season = db().get_season(expected_show, episode.season_number)
+    except Exception as e:
         irregularity(episode, f'could not get season')
-        return
+        if dry_run:
+            return
+        else:
+            db().create_season(expected_show, episode.season_number)
+            expected_season = db().get_season(expected_show, episode.season_number)
     needs_update = False
     if expected_show != show.id:
         irregularity(episode, f'is on show {show.id} but expected {expected_show}')

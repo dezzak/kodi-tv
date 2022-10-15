@@ -173,14 +173,14 @@ class Database:
         print(f'Updated episode [{episode.id}]')
 
     @lru_cache
-    def get_season(self, show_id: int, season_number: int) -> Optional[Season]:
+    def get_season(self, show_id: int, season_number: int) -> Season:
         cur = self.con.cursor()
         cur.execute(
             "SELECT idSeason, idShow, season FROM seasons WHERE idShow = :show_id AND season = :season_number",
             {"show_id": show_id, "season_number": season_number})
         row = cur.fetchone()
         if not row:
-            return None
+            raise Exception("Couldn't find season")
         return Season(row[0], row[1], row[2])
 
     def get_unique_id_for_type(self, ids_to_search: list[int], desired_type: str) -> int:
@@ -198,6 +198,14 @@ class Database:
         cur.execute("DELETE FROM episode WHERE idEpisode = :id", {"id": episode_id})
         self.con.commit()
         print(f'Removed episode [{episode_id}]')
+
+    def create_season(self, show_id: int, season: int):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO seasons (idShow, season, name) VALUES (:show_id, :season, '')",
+                    {"show_id": show_id, "season": season})
+        self.con.commit()
+        new_id = cur.lastrowid
+        print(f'Created season [{new_id}]')
 
 
 def db() -> Database:
