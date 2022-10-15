@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Optional
 
-from Entity import Show, Path, File, Episode
+from Entity import Show, Path, File, Episode, Season
 from functools import lru_cache
 
 
@@ -129,9 +129,9 @@ class Database:
         cur = self.con.cursor()
         result = []
         for row in cur.execute(
-                "SELECT idEpisode, c18, idFile, c19, idShow FROM episode WHERE idShow = :show_id",
+                "SELECT idEpisode, c18, idFile, c19, idShow, idSeason, c12 FROM episode WHERE idShow = :show_id",
                 {"show_id": show_id}):
-            result.append(Episode(row[0], row[1], row[2], row[3], row[4]))
+            result.append(Episode(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
         return result
 
     @lru_cache
@@ -166,10 +166,22 @@ class Database:
     def update_episode(self, episode: Episode):
         cur = self.con.cursor()
         cur.execute(
-            "UPDATE episode SET idShow = :show_id, c19 = :path_id, idFile = :file_id WHERE idEpisode = :episode_id",
-            {"episode_id": episode.id, "path_id": episode.path_id, "file_id": episode.file_id, "show_id": episode.show_id})
+            "UPDATE episode SET idShow = :show_id, c19 = :path_id, idFile = :file_id, idSeason = :season_id WHERE idEpisode = :episode_id",
+            {"episode_id": episode.id, "path_id": episode.path_id, "file_id": episode.file_id,
+             "show_id": episode.show_id, "season_id": episode.season_id})
         self.con.commit()
         print(f'Updated episode [{episode.id}]')
+
+    @lru_cache
+    def get_season(self, show_id: int, season_number: int) -> Optional[Season]:
+        cur = self.con.cursor()
+        cur.execute(
+            "SELECT idSeason, idShow, season FROM seasons WHERE idShow = :show_id AND season = :season_number",
+            {"show_id": show_id, "season_number": season_number})
+        row = cur.fetchone()
+        if not row:
+            return None
+        return Season(row[0], row[1], row[2])
 
 
 def db() -> Database:

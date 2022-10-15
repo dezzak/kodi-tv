@@ -19,6 +19,10 @@ def fix_episode(episode: Episode, show: Show):
     if not expected_file:
         irregularity(episode, f'could not get file (expected file id {episode.file_id})')
         return
+    expected_season = db().get_season(expected_show, episode.season_number)
+    if not expected_season:
+        irregularity(episode, f'could not get season')
+        return
     needs_update = False
     if expected_show != show.id:
         irregularity(episode, f'is on show {show.id} but expected {expected_show}')
@@ -29,10 +33,15 @@ def fix_episode(episode: Episode, show: Show):
     if int(expected_file.id) != int(episode.file_id):
         irregularity(episode, f'is on file {episode.file_id} but expected {expected_file.id}')
         needs_update = True
+    if int(expected_season.id) != int(episode.season_id):
+        irregularity(episode, f'is on season id {episode.season_id} but expected {expected_season.id}')
+        needs_update = True
     if needs_update:
-        desired_episode = Episode(episode.id, episode.filename, expected_file.id, expected_path.id, expected_show)
+        desired_episode = Episode(episode.id, episode.filename, expected_file.id, expected_path.id, expected_show,
+                                  expected_season.id, episode.season_number)
         if dry_run:
-            print(f'Would update episode {desired_episode.id} to have show {desired_episode.show_id}, path {desired_episode.path_id} and file {desired_episode.file_id}')
+            print(
+                f'Would update episode {desired_episode.id} to have show {desired_episode.show_id}, path {desired_episode.path_id}, file {desired_episode.file_id} and season {desired_episode.season_id}')
         else:
             db().update_episode(desired_episode)
 
