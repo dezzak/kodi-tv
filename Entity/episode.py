@@ -10,3 +10,9 @@ class Episode:
         self.season_number = season_number
         self.unique_id = unique_id
         self.rating_id = rating_id
+
+    def get_file_name(self):
+        return self.filename.rsplit('/', 1)[1]
+
+    def get_file_path(self):
+        return self.filename.rsplit('/', 1)[0]

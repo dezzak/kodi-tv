@@ -1,8 +1,9 @@
 from Entity import Episode, Show
 from Database import db
+from Media import file_exists, get_created_time
 from . import path
 
-dry_run = True
+dry_run = False
 
 
 def fix_episode(episode: Episode, show: Show):
@@ -11,14 +12,26 @@ def fix_episode(episode: Episode, show: Show):
     if not expected_show:
         irregularity(episode, 'Could not get expected show')
         return
-    expected_path = db().get_path_for_file_path(episode.filename.rsplit('/', 1)[0] + '/')
+    expected_path = db().get_path_for_file_path(episode.get_file_path() + '/')
     if not expected_path:
         irregularity(episode, 'could not get expected path')
         return
-    expected_file = db().get_file_in_path(expected_path.id, episode.filename.rsplit('/', 1)[1])
+    expected_file = db().get_file_in_path(expected_path.id, episode.get_file_name())
     if not expected_file:
         irregularity(episode, f'could not get file (expected file id {episode.file_id})')
-        return
+        if not file_exists(expected_path, episode.get_file_name()):
+            irregularity(episode, f'file does not exist [{episode.file_id}]')
+            return
+        created_time = get_created_time(expected_path, episode.get_file_name())
+        if dry_run:
+            print(f'Would create file entry to replace {episode.get_file_name()}')
+            return
+        new_file_id = db().create_file(expected_path.id, episode.get_file_name(), created_time)
+        expected_file = db().get_file_by_id(new_file_id)
+        if not expected_file:
+            irregularity(episode, f'created replacement file [{new_file_id}] but unable to get it back')
+            return
+        print(f'Created file {episode.get_file_name()} [{new_file_id}] with created time {created_time}')
     try:
         expected_season = db().get_season(expected_show, episode.season_number)
     except Exception as e:

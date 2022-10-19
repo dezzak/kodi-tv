@@ -183,7 +183,7 @@ class Database:
             raise Exception("Couldn't find season")
         return Season(row[0], row[1], row[2])
 
-    def get_unique_id_for_type(self, ids_to_search: list[int], desired_type: str) -> int:
+    def get_unique_id_for_type(self, ids_to_search: list[int], desired_type: str) -> Optional[int]:
         params: list = ids_to_search.copy()
         params.append(desired_type)
         cur = self.con.cursor()
@@ -191,6 +191,8 @@ class Database:
             '?' * (len(ids_to_search))),
                     params)
         row = cur.fetchone()
+        if not row:
+            return None
         return row[0]
 
     def remove_episode_by_id(self, episode_id: int):
@@ -206,6 +208,15 @@ class Database:
         self.con.commit()
         new_id = cur.lastrowid
         print(f'Created season [{new_id}]')
+
+    def create_file(self, path_id: int, file_name: str, date_added: str) -> int:
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO files (idPath, strFilename, dateAdded) VALUES (:path_id, :file_name, :date_added)",
+                    {"path_id": path_id, "file_name": file_name, "date_added": date_added})
+        self.con.commit()
+        new_id = cur.lastrowid
+        print(f'Created file [{new_id}]')
+        return new_id
 
 
 def db() -> Database:
