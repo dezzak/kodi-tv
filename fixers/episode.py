@@ -21,6 +21,13 @@ def fix_episode(episode: Episode, show: Show):
         irregularity(episode, f'could not get file (expected file id {episode.file_id})')
         if not file_exists(expected_path, episode.get_file_name()):
             irregularity(episode, f'file does not exist [{episode.file_id}]')
+            if not dry_run:
+                db().remove_bookmarks_by_file(episode.file_id)
+                db().remove_episodes_by_file(episode.file_id)
+                db().remove_settings_by_file(episode.file_id)
+                db().remove_stacktimes_by_file(episode.file_id)
+                db().remove_streamdetails_by_file(episode.file_id)
+                print(f'Removed references to file {episode.file_id}')
             return
         created_time = get_created_time(expected_path, episode.get_file_name())
         if dry_run:
