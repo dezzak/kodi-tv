@@ -2,15 +2,7 @@ from os import path
 
 from Entity import Path
 from datetime import datetime
-
-
-def convert_to_local(smb_path):
-    conversions = [
-        ("smb://henrietta.internal.dezzanet.co.uk/media/", "/home/dezza/src/kodi-tv/mediahen/")
-    ]
-    for conversion in conversions:
-        if smb_path.startswith(conversion[0]):
-            return smb_path.replace(conversions[0][0], conversions[0][1])
+from .smb_mapping import convert_to_local
 
 
 def is_directory(kodi_path: Path):

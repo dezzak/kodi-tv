@@ -7,7 +7,7 @@ db = Database.db()
 
 
 def fix():
-    shows = db.get_shows(400)
+    shows = db.get_shows(1)
     for show in shows:
         fixers.fix_show(show)
 

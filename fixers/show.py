@@ -3,6 +3,7 @@ from Database import db
 from Entity import Show
 import Media
 from . import remove_path, fix_episode
+from .unwatched import fix_unwatched_for_show
 
 
 def fix_show(show: Show):
@@ -38,3 +39,4 @@ def fix_show(show: Show):
         else:
             episodes_by_file[episode.file_id] = [episode]
     fixers.deduplicate_for_show(episodes_by_file)
+    fix_unwatched_for_show(show)
