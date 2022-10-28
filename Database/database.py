@@ -36,8 +36,9 @@ class Database:
     def get_files_for_path(self, path_id: int) -> list[File]:
         cur = self.con.cursor()
         result = []
-        for row in cur.execute("SELECT idFile, strFilename, idPath FROM files WHERE idPath = :path", {"path": path_id}):
-            result.append(File(row[0], row[1], row[2]))
+        for row in cur.execute("SELECT idFile, strFilename, idPath, playCount FROM files WHERE idPath = :path",
+                               {"path": path_id}):
+            result.append(File(row[0], row[1], row[2], row[3]))
         return result
 
     def count_shows_for_path(self, path_id: int) -> int:
@@ -147,21 +148,22 @@ class Database:
 
     def get_file_by_id(self, file_id: int) -> Optional[File]:
         cur = self.con.cursor()
-        cur.execute("SELECT idFile, strFilename, idPath FROM files WHERE idFile = :file_id", {"file_id": file_id})
+        cur.execute("SELECT idFile, strFilename, idPath, playCount FROM files WHERE idFile = :file_id",
+                    {"file_id": file_id})
         row = cur.fetchone()
         if not row:
             return None
-        return File(row[0], row[1], row[2])
+        return File(row[0], row[1], row[2], row[3])
 
     def get_file_in_path(self, path_id: int, file_name: str) -> Optional[File]:
         cur = self.con.cursor()
         cur.execute(
-            "SELECT idFile, strFilename, idPath FROM files WHERE idPath = :path_id AND strFilename = :file_name",
+            "SELECT idFile, strFilename, idPath, playCount FROM files WHERE idPath = :path_id AND strFilename = :file_name",
             {"path_id": path_id, "file_name": file_name})
         row = cur.fetchone()
         if not row:
             return None
-        return File(row[0], row[1], row[2])
+        return File(row[0], row[1], row[2], row[3])
 
     def update_episode(self, episode: Episode):
         cur = self.con.cursor()
@@ -217,6 +219,13 @@ class Database:
         new_id = cur.lastrowid
         print(f'Created file [{new_id}]')
         return new_id
+
+    def mark_file_as_watched(self, file_id):
+        cur = self.con.cursor()
+        cur.execute(
+            "UPDATE files SET playCount = 1, lastPlayed = strftime('%Y-%m-%d %H:%M:%S','now') WHERE idFile = :file_id",
+            {"file_id": file_id})
+        self.con.commit()
 
 
 def db() -> Database:

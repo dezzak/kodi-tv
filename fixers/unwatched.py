@@ -2,7 +2,7 @@ from Database import db
 from Entity import Show, Path, File
 from Media.unwatched import get_all_unwatched
 
-dry_run = True
+dry_run = False
 
 
 def fix_unwatched_for_show(show: Show):
@@ -21,6 +21,8 @@ def fix_unwatched_for_path(path: Path):
 
 
 def fix_unwatched_for_file(file: File, path: Path):
+    if file.playCount is not None and file.playCount > 0:
+        return
     full_path = path.path + file.filename
     unwatched_files = get_all_unwatched()
     if full_path not in unwatched_files:
@@ -31,3 +33,5 @@ def mark_file_as_watched(file: File):
     if dry_run:
         print(f'Would mark file [{file.id}] ({file.filename}) as watched')
         return
+    db().mark_file_as_watched(file.id)
+    print(f'Marked file [{file.id}] ({file.filename}) as watched')
