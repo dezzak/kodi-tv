@@ -47,3 +47,34 @@ def get_show_for_file_path(file_path: str) -> Optional[int]:
             return paths[path]
     return None
 
+
+def normalise_paths(paths: list[Path]):
+    for path in paths:
+        normalise_path(path)
+
+
+def normalise_path(path: Path):
+    if not path.parent_path_id:
+        return
+    parent = db().get_path(path.parent_path_id)
+    if not parent:
+        print(f'IRREGULARITY - path [{path.id}] {path.path} which has parent id [{path.parent_path_id}] - parent not found')
+        fix_missing_parent_path(path)
+        return
+    if not path.path.startswith(parent.path):
+        print(f'IRREGULARITY - path [{path.id}] {path.path} which has parent id [{path.parent_path_id}] is not aligned ({parent.path})')
+        return
+    normalise_path(parent)
+
+
+def fix_missing_parent_path(path: Path):
+    parent_str_path = path.path.rsplit('/', 2 if path.path.endswith('/') else 1)[0] + '/'
+    found_parent = db().get_path_for_file_path(parent_str_path)
+    if found_parent:
+        if dry_run:
+            print(f'Would update path [{path.id}] to have parent {found_parent.id} ({found_parent.path})')
+        else:
+            db().update_parent_path(path.id, found_parent.id)
+            print(f'Updated path [{path.id}] to have parent {found_parent.id} ({found_parent.path})')
+    else:
+        print(f'Could not find parent with path {parent_str_path}')

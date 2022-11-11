@@ -2,7 +2,7 @@ import fixers
 from Database import db
 from Entity import Show
 import Media
-from . import remove_path, fix_episode
+from . import remove_path, fix_episode, normalise_paths
 from .unwatched import fix_unwatched_for_show
 
 
@@ -40,3 +40,6 @@ def fix_show(show: Show):
             episodes_by_file[episode.file_id] = [episode]
     fixers.deduplicate_for_show(episodes_by_file)
     fix_unwatched_for_show(show)
+    # Now try the paths
+    episode_paths = db().get_paths_of_episodes_for_show(show.id)
+    normalise_paths(episode_paths)

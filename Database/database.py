@@ -28,9 +28,9 @@ class Database:
         cur = self.con.cursor()
         result = []
         for row in cur.execute(
-                "SELECT p.idPath, p.strPath, p.noUpdate, p.exclude FROM path p INNER JOIN tvshowlinkpath t ON p.idPath = t.idPath WHERE t.idShow = :show_id",
+                "SELECT p.idPath, p.strPath, p.noUpdate, p.exclude, idParentPath FROM path p INNER JOIN tvshowlinkpath t ON p.idPath = t.idPath WHERE t.idShow = :show_id",
                 {"show_id": show_id}):
-            result.append(Path(row[0], row[1], row[2], row[3]))
+            result.append(Path(row[0], row[1], row[2], row[3], row[4]))
         return result
 
     def get_files_for_path(self, path_id: int) -> list[File]:
@@ -50,18 +50,21 @@ class Database:
         cur = self.con.cursor()
         result = []
         for row in cur.execute(
-                "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE idParentPath = :path_id",
+                "SELECT idPath, strPath, noUpdate, exclude, idParentPath FROM path WHERE idParentPath = :path_id",
                 {"path_id": path_id}):
-            result.append(Path(row[0], row[1], row[2], row[3]))
+            result.append(Path(row[0], row[1], row[2], row[3], row[4]))
         return result
 
-    def get_path(self, path_id: int) -> Path:
+    @lru_cache
+    def get_path(self, path_id: int) -> Optional[Path]:
         cur = self.con.cursor()
         cur.execute(
-            "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE idPath = :path_id",
+            "SELECT idPath, strPath, noUpdate, exclude, idParentPath FROM path WHERE idPath = :path_id",
             {"path_id": path_id})
         row = cur.fetchone()
-        return Path(row[0], row[1], row[2], row[3])
+        if not row:
+            return None
+        return Path(row[0], row[1], row[2], row[3], row[4])
 
     def remove_bookmarks_by_file(self, file_id: int):
         cur = self.con.cursor()
@@ -139,12 +142,12 @@ class Database:
     def get_path_for_file_path(self, file_path: str) -> Optional[Path]:
         cur = self.con.cursor()
         cur.execute(
-            "SELECT idPath, strPath, noUpdate, exclude FROM path WHERE strPath = :file_path",
+            "SELECT idPath, strPath, noUpdate, exclude, idParentPath FROM path WHERE strPath = :file_path",
             {"file_path": file_path})
         row = cur.fetchone()
         if not row:
             return None
-        return Path(row[0], row[1], row[2], row[3])
+        return Path(row[0], row[1], row[2], row[3], row[4])
 
     def get_file_by_id(self, file_id: int) -> Optional[File]:
         cur = self.con.cursor()
@@ -226,6 +229,30 @@ class Database:
             "UPDATE files SET playCount = 1, lastPlayed = strftime('%Y-%m-%d %H:%M:%S','now') WHERE idFile = :file_id",
             {"file_id": file_id})
         self.con.commit()
+
+    def get_paths_of_episodes_for_show(self, show_id) -> list[Path]:
+        cur = self.con.cursor()
+        result = []
+        for row in cur.execute(
+                "SELECT p.idPath, p.strPath, p.noUpdate, p.exclude, p.idParentPath"
+                " FROM path p INNER JOIN episode e on e.c19 = p.idPath"
+                " WHERE e.idShow = :show_id"
+                " GROUP BY p.idPath, p.strPath, p.noUpdate, p.exclude, p.idParentPath",
+                {"show_id": show_id}):
+            result.append(Path(row[0], row[1], row[2], row[3], row[4]))
+        return result
+
+    def update_parent_path(self, path_id: int, parent_path_id):
+        cur = self.con.cursor()
+        cur.execute(
+            "UPDATE path SET idParentPath = :parent_id WHERE idPath = :path_id",
+            {"path_id": path_id, "parent_id": parent_path_id})
+        self.con.commit()
+        self.clear_path_cache()
+
+    def clear_path_cache(self):
+        self.get_path.cache_clear()
+        self.get_path_for_file_path.cache_clear()
 
 
 def db() -> Database:
